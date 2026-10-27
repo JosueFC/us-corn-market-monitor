@@ -23,6 +23,7 @@ def count(con, where=""):
 
 # ----------------------------------------------------------------- link discovery and download
 
+
 def test_discover_links_resolves_relative_links_and_drops_duplicates_and_other_files():
     html = fixture_bytes("wasde", "historical_wasde_page.html").decode()
     links = wasde.discover_links(html, "https://www.usda.gov/historical-wasde-report-data-3")
@@ -52,6 +53,7 @@ def test_page_without_data_links_is_schema_drift(monkeypatch):
 
 # ----------------------------------------------------------------- parsing
 
+
 def test_parse_keeps_text_and_maps_columns():
     df = wasde.parse_csv(fixture_bytes("wasde", MONTHLY), MONTHLY)
     assert len(df) == 29
@@ -74,11 +76,14 @@ def test_older_layout_loads_optional_columns_as_null():
     assert len(df) == 2 and df.release_time.isna().all() and df.forecast_month.isna().all()
 
 
-@pytest.mark.parametrize("name, error", [
-    ("broken_missing_value_column.csv", common.SchemaDrift),
-    ("broken_truncated.csv", common.MalformedFile),
-    ("broken_header_only.csv", common.MalformedFile),
-])
+@pytest.mark.parametrize(
+    "name, error",
+    [
+        ("broken_missing_value_column.csv", common.SchemaDrift),
+        ("broken_truncated.csv", common.MalformedFile),
+        ("broken_header_only.csv", common.MalformedFile),
+    ],
+)
 def test_broken_files_are_rejected(name, error):
     with pytest.raises(error):
         wasde.parse_csv(fixture_bytes("wasde", name), name)
@@ -91,6 +96,7 @@ def test_empty_file_is_rejected():
 
 # ----------------------------------------------------------------- loading and runs
 
+
 def test_reload_is_idempotent(tmp_path):
     con = wasde.connect()
     files = copy_fixtures(tmp_path / "in", MONTHLY)
@@ -102,9 +108,11 @@ def test_reload_is_idempotent(tmp_path):
 def test_both_versions_of_a_reissued_report_are_kept_under_their_file_names(tmp_path):
     con = wasde.connect()
     wasde.run(copy_fixtures(tmp_path / "in", MONTHLY, MONTHLY_V2), con)
-    got = dict(con.execute(
-        "SELECT source_file, value FROM raw.wasde WHERE attribute = 'Exports' AND market_year = '2024/25'"
-    ).fetchall())
+    got = dict(
+        con.execute(
+            "SELECT source_file, value FROM raw.wasde WHERE attribute = 'Exports' AND market_year = '2024/25'"
+        ).fetchall()
+    )
     assert got == {MONTHLY: "2450", MONTHLY_V2: "2475"}
 
 
@@ -119,7 +127,9 @@ def test_zip_archive_members_are_separate_partitions(tmp_path):
     res = wasde.run([archive], con)
     assert res.loaded == 2 and count(con) == 31
     assert con.execute("SELECT DISTINCT member FROM raw.wasde ORDER BY 1").fetchall() == [
-        ("reports/2010-05.csv",), ("reports/2025-01.csv",)]
+        ("reports/2010-05.csv",),
+        ("reports/2025-01.csv",),
+    ]
 
 
 def test_corrupt_zip_is_logged_and_other_files_still_load(tmp_path):
@@ -136,10 +146,10 @@ def test_truncated_file_is_logged_and_leaves_the_table_untouched(tmp_path):
     con = wasde.connect()
     good = copy_fixtures(tmp_path / "in", MONTHLY)[0]
     wasde.run([good], con)
-    good.write_bytes(fixture_bytes("wasde", "broken_truncated.csv"))   # the file is replaced by a broken copy
+    good.write_bytes(fixture_bytes("wasde", "broken_truncated.csv"))  # the file is replaced by a broken copy
     res = wasde.run([good], con)
     assert [k for k, _ in res.failures] == [MONTHLY]
-    assert count(con) == 29                                               # previous load still intact
+    assert count(con) == 29  # previous load still intact
 
 
 def test_schema_drift_stops_the_run(tmp_path):
@@ -155,10 +165,12 @@ def test_resume_skips_unchanged_files_and_reloads_changed_ones(tmp_path):
     path = copy_fixtures(tmp_path / "in", MONTHLY)[0]
     assert wasde.run([path], con, resume=True).loaded == 1
     assert wasde.run([path], con, resume=True).skipped == 1
-    path.write_bytes(fixture_bytes("wasde", MONTHLY_V2))                  # USDA replaced the file in place
+    path.write_bytes(fixture_bytes("wasde", MONTHLY_V2))  # USDA replaced the file in place
     assert wasde.run([path], con, resume=True).loaded == 1
-    assert con.execute("SELECT value FROM raw.wasde WHERE attribute = 'Exports' AND market_year = '2024/25'"
-                       ).fetchone()[0] == "2475"
+    assert (
+        con.execute("SELECT value FROM raw.wasde WHERE attribute = 'Exports' AND market_year = '2024/25'").fetchone()[0]
+        == "2475"
+    )
 
 
 def test_inventory_lists_corn_attributes_and_units(tmp_path):

@@ -19,12 +19,13 @@ def test_profile_reports_series_suppression_codes_and_wasde_attributes(tmp_path)
 
     report = profile_raw.build_report(con)
     assert "CORN, GRAIN - YIELD, MEASURED IN BU / ACRE" in report
-    assert "(D)" in report                       # the suppression code is listed as a non-numeric value
+    assert "(D)" in report  # the suppression code is listed as a non-numeric value
     assert "Ending Stocks" in report and "Million Bushels" in report
     assert "nass" in report and "wasde" in report
 
 
 def test_profile_runs_on_an_empty_database():
     from ingest import common
+
     report = profile_raw.build_report(common.connect())
     assert "raw.nass_quickstats is empty or missing" in report

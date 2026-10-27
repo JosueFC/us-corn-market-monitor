@@ -1,0 +1,17 @@
+version: 2
+
+sources:
+  - name: raw
+    description: Tables written by the Python ingestion scripts. Values are text exactly as served by the source.
+    schema: raw
+    tables:
+      - name: nass_quickstats
+        description: NASS Quick Stats records, one partition per configured query and year.
+        loaded_at_field: _pulled_at
+        freshness:
+          warn_after: {count: 45, period: day}
+          error_after: {count: 90, period: day}
+      - name: wasde
+        description: WASDE report data as first published, one partition per CSV file.
+      - name: ingest_log
+        description: One row per load attempt (ok, failed, no_data).

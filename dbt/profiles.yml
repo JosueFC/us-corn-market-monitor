@@ -1,0 +1,8 @@
+corn_monitor:
+  target: dev
+  outputs:
+    dev:
+      type: duckdb
+      # Run dbt from the dbt/ folder; set CORN_DB to use another database file.
+      path: "{{ env_var('CORN_DB', '../data/corn.duckdb') }}"
+      threads: 2

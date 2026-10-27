@@ -22,17 +22,21 @@ def rows(con, where=""):
 
 # ----------------------------------------------------------------- configuration
 
+
 def test_shipped_config_is_valid():
     assert {"price_received_national", "annual_state", "stocks_national"} <= set(QUERIES)
 
 
-@pytest.mark.parametrize("body, message", [
-    ("queries: {}", "non-empty"),
-    ("queries:\n  Bad-Name:\n    start_year: 2000\n    params: {commodity_desc: CORN}", "snake_case"),
-    ("queries:\n  q:\n    start_year: 2000\n    params: {year: '2020'}", "set by the loader"),
-    ("queries:\n  q:\n    start_year: 2000\n    params: {commodity_desc: ''}", "non-empty string"),
-    ("queries:\n  q:\n    start_year: 1700\n    params: {commodity_desc: CORN}", "start_year"),
-])
+@pytest.mark.parametrize(
+    "body, message",
+    [
+        ("queries: {}", "non-empty"),
+        ("queries:\n  Bad-Name:\n    start_year: 2000\n    params: {commodity_desc: CORN}", "snake_case"),
+        ("queries:\n  q:\n    start_year: 2000\n    params: {year: '2020'}", "set by the loader"),
+        ("queries:\n  q:\n    start_year: 2000\n    params: {commodity_desc: ''}", "non-empty string"),
+        ("queries:\n  q:\n    start_year: 1700\n    params: {commodity_desc: CORN}", "start_year"),
+    ],
+)
 def test_bad_config_is_rejected(tmp_path, body, message):
     p = tmp_path / "q.yml"
     p.write_text(body)
@@ -47,6 +51,7 @@ def test_missing_api_key_exits_with_instructions(monkeypatch):
 
 
 # ----------------------------------------------------------------- API responses
+
 
 def test_fetch_sends_filters_year_and_json_format():
     s = FakeSession(ok())
@@ -81,7 +86,7 @@ def test_rejected_key_is_an_auth_error():
 
 
 def test_error_messages_never_contain_the_key():
-    echo = FakeResponse(502, json.dumps({"error": [f"server error for key={KEY}"]}))   # retried, then:
+    echo = FakeResponse(502, json.dumps({"error": [f"server error for key={KEY}"]}))  # retried, then:
     final = FakeResponse(418, json.dumps({"error": [f"teapot for key={KEY}"]}))
     with pytest.raises(common.IngestError) as e:
         nass.fetch(PRICE, 2024, KEY, FakeSession(echo, final))
@@ -94,6 +99,7 @@ def test_missing_data_list_is_schema_drift():
 
 
 # ----------------------------------------------------------------- parsing and loading
+
 
 def test_missing_value_field_is_schema_drift_and_table_is_untouched():
     con = nass.connect()
@@ -108,17 +114,23 @@ def test_missing_value_field_is_schema_drift_and_table_is_untouched():
 def test_values_are_stored_exactly_as_served():
     con = nass.connect()
     nass.load_partition(con, "annual_state", 2024, fixture_json("nass", "annual_state_2024.json")["data"], NOW)
-    got = dict(con.execute("SELECT state_alpha || ' ' || reference_period_desc || ' ' || statisticcat_desc, value "
-                           "FROM raw.nass_quickstats").fetchall())
+    got = dict(
+        con.execute(
+            "SELECT state_alpha || ' ' || reference_period_desc || ' ' || statisticcat_desc, value "
+            "FROM raw.nass_quickstats"
+        ).fetchall()
+    )
     assert got["IA YEAR PRODUCTION"] == "2,550,000,000"
     assert got["RI YEAR PRODUCTION"] == "(D)"
-    assert got["IA YEAR - AUG FORECAST YIELD"] == "214"          # in-season forecasts are kept
+    assert got["IA YEAR - AUG FORECAST YIELD"] == "214"  # in-season forecasts are kept
     assert con.execute("SELECT DISTINCT year FROM raw.nass_quickstats").fetchall() == [("2024",)]
 
 
 def test_optional_field_missing_loads_as_null():
-    records = [{k: v for k, v in r.items() if k != "CV (%)"}
-               for r in fixture_json("nass", "price_received_national_2024.json")["data"]]
+    records = [
+        {k: v for k, v in r.items() if k != "CV (%)"}
+        for r in fixture_json("nass", "price_received_national_2024.json")["data"]
+    ]
     con = nass.connect()
     nass.load_partition(con, "price_received_national", 2024, records, NOW)
     assert rows(con, "WHERE cv_pct IS NULL") == 13
@@ -149,6 +161,7 @@ def test_landing_zone_snapshot_is_written_without_the_key(isolated_paths):
 
 # ----------------------------------------------------------------- runs, failure log and resume
 
+
 def _scripted_fetch(monkeypatch, behaviour):
     calls = []
 
@@ -165,8 +178,10 @@ def _scripted_fetch(monkeypatch, behaviour):
 
 def test_failed_partition_is_logged_and_the_run_continues(monkeypatch):
     con = nass.connect()
-    _scripted_fetch(monkeypatch, lambda label, n: RuntimeError("HTTP 500 boom")
-                    if label == "price_received_national/year=2021" else None)
+    _scripted_fetch(
+        monkeypatch,
+        lambda label, n: RuntimeError("HTTP 500 boom") if label == "price_received_national/year=2021" else None,
+    )
     res = nass.run(QUERIES, {"price_received_national": [2020, 2021, 2022]}, KEY, con)
     assert res.loaded == 2 and res.rows == 26
     assert [k for k, _ in res.failures] == ["price_received_national/year=2021"]
@@ -180,15 +195,19 @@ def test_resume_retries_failures_skips_old_partitions_and_refreshes_recent_years
     this_year = dt.date.today().year
     years = list(range(this_year - 4, this_year + 1))
     first_failure = f"price_received_national/year={years[0]}"
-    calls = _scripted_fetch(monkeypatch, lambda label, n: RuntimeError("transient")
-                            if label == first_failure and n == 1 else None)
+    calls = _scripted_fetch(
+        monkeypatch, lambda label, n: RuntimeError("transient") if label == first_failure and n == 1 else None
+    )
     nass.run(QUERIES, {"price_received_national": years}, KEY, con, resume=True)
     before = len(calls)
     second = nass.run(QUERIES, {"price_received_national": years}, KEY, con, resume=True, refresh_years=2)
     assert second.failures == []
     # the failed year is retried, the two most recent years are refreshed, the rest are skipped
-    assert calls[before:] == [first_failure, f"price_received_national/year={this_year - 1}",
-                     f"price_received_national/year={this_year}"]
+    assert calls[before:] == [
+        first_failure,
+        f"price_received_national/year={this_year - 1}",
+        f"price_received_national/year={this_year}",
+    ]
     assert second.skipped == 2
 
 
@@ -217,6 +236,7 @@ def test_an_unpublished_latest_year_is_not_a_failure(monkeypatch):
 
 # ----------------------------------------------------------------- --check-config
 
+
 def _check_config_session(param_values: dict, counts: int):
     class S(FakeSession):
         def get(self, url, params=None, **kw):
@@ -225,6 +245,7 @@ def _check_config_session(param_values: dict, counts: int):
                 p = params["param"]
                 return FakeResponse(200, json.dumps({p: param_values.get(p, [])}))
             return FakeResponse(200, json.dumps({"count": counts}))
+
     return S(None)
 
 
@@ -236,7 +257,7 @@ def test_check_config_passes_when_values_exist_and_queries_return_rows(capsys):
 
 
 def test_check_config_flags_unknown_values_with_suggestions(capsys):
-    queries = {"q": {"start_year": 2000, "params": {"statisticcat_desc": "PRICE RECIEVED"}}}   # misspelled
+    queries = {"q": {"start_year": 2000, "params": {"statisticcat_desc": "PRICE RECIEVED"}}}  # misspelled
     values = fixture_json("nass", "get_param_values_statisticcat_desc.json")
     assert nass.check_config(queries, KEY, 2025, _check_config_session(values, 13)) == 1
     out = capsys.readouterr().out
@@ -252,8 +273,11 @@ def test_check_config_flags_a_query_that_returns_nothing(capsys):
 
 def test_check_config_reports_a_rejected_key_without_a_traceback(monkeypatch, capsys):
     monkeypatch.setenv("NASS_API_KEY", KEY)
-    monkeypatch.setattr(nass.requests, "Session",
-                        lambda: FakeSession(FakeResponse(401, fixture_bytes("nass", "error_unauthorized.json"))))
+    monkeypatch.setattr(
+        nass.requests,
+        "Session",
+        lambda: FakeSession(FakeResponse(401, fixture_bytes("nass", "error_unauthorized.json"))),
+    )
     assert nass.main(["--check-config"]) == 2
     out = capsys.readouterr().out
     assert "STOPPED" in out and "rejected the key" in out and KEY not in out

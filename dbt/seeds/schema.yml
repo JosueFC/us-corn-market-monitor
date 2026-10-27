@@ -1,0 +1,20 @@
+version: 2
+
+seeds:
+  - name: dim_model
+    description: Forecast models and benchmarks. The R forecasting stage writes facts keyed by model_key.
+    columns:
+      - name: model_key
+        data_tests: [unique, not_null]
+  - name: wasde_attribute_map
+    description: Maps each WASDE corn attribute (lower-cased) to a balance-sheet item and its expected unit.
+    columns:
+      - name: attribute_key
+        data_tests: [unique, not_null]
+      - name: expected_unit
+        data_tests: [not_null]
+  - name: known_wasde_gaps
+    description: Months without a WASDE report, with the reason. A gap not listed here fails a data test.
+    columns:
+      - name: report_month
+        data_tests: [unique, not_null]

@@ -45,6 +45,7 @@ def isolated_paths(tmp_path, monkeypatch):
     monkeypatch.setenv("CORN_DB", str(tmp_path / "test.duckdb"))
     monkeypatch.setenv("CORN_RAW_DIR", str(tmp_path / "raw"))
     from ingest import common, nass
+
     monkeypatch.setattr(common.time, "sleep", lambda *_: None)
     monkeypatch.setattr(nass, "PAUSE_SECONDS", 0)
     return tmp_path

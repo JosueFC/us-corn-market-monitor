@@ -70,6 +70,18 @@ python -m ingest.wasde --download
 python -m ingest.wasde --inventory
 ```
 
+Then build and test the models (from the repository root):
+
+```powershell
+dbt seed  --project-dir dbt --profiles-dir dbt
+dbt build --project-dir dbt --profiles-dir dbt
+python -m scripts.profile_raw --out data\profile.txt   # what is in the raw tables, for checking the models
+```
+
+`python -m scripts.make_sample_data --db data\sample.duckdb` creates a synthetic database for trying the
+models without the real data (point `CORN_DB` at it). [`docs/data_model.md`](docs/data_model.md) describes
+the models and the data tests.
+
 If the USDA site refuses automated downloads, download the WASDE files in a browser into
 `data/manual/wasde/` and load them with `python -m ingest.wasde --from-dir data/manual/wasde`.
 
@@ -92,9 +104,11 @@ check fails when it should. GitHub Actions runs lint and tests on Ubuntu and Win
 
 ```
 config/nass_queries.yml   NASS queries (filters and start year)
-docs/                     data sources and point-in-time rules
+dbt/                      staging, intermediate and mart models, seeds and data tests
+docs/                     data sources, point-in-time rules, data model and tests
 ingest/                   loaders: common.py (shared), nass.py, wasde.py
-tests/                    pytest suite and fixtures
+scripts/                  synthetic sample data generator, raw data profile
+tests/                    pytest suite (loaders and dbt models) and fixtures
 ```
 
 ## License

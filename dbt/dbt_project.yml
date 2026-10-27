@@ -1,0 +1,45 @@
+name: corn_monitor
+version: "0.1.0"
+config-version: 2
+profile: corn_monitor
+
+model-paths: ["models"]
+seed-paths: ["seeds"]
+test-paths: ["tests"]
+macro-paths: ["macros"]
+clean-targets: ["target", "logs"]
+
+# Thresholds used by the data tests. Override on the command line, for example:
+#   dbt build --vars '{production_sum_tolerance: 0.001}'
+vars:
+  # A month's price counts as public from the last day of the month that is this many months later.
+  # Quick Stats does not keep the original release dates, so this is an assumption (see docs/data_sources.md).
+  price_availability_lag_months: 1
+  # State production must add up to the national figure within this fraction (final annual estimates).
+  production_sum_tolerance: 0.005
+  # WASDE balance-sheet identities hold within this many million bushels (the published items are rounded).
+  wasde_identity_tolerance: 2.0
+  # Freshness limits for the data tests.
+  nass_max_age_days: 60
+  wasde_max_age_days: 60
+  price_max_months_behind: 3
+
+models:
+  corn_monitor:
+    staging:
+      +materialized: view
+      +schema: staging
+    intermediate:
+      +materialized: view
+      +schema: intermediate
+    marts:
+      +materialized: table
+      +schema: marts
+
+seeds:
+  corn_monitor:
+    +schema: marts
+    wasde_attribute_map:
+      +schema: staging
+      +column_types:
+        ignored: boolean

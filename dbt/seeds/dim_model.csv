@@ -1,0 +1,7 @@
+model_key,model_name,model_family,uses_regressor,is_benchmark,description
+naive,Naive,baseline,false,true,Next value equals the last observed value.
+snaive,Seasonal naive,baseline,false,true,Value from the same month one year earlier.
+ets,ETS,exponential smoothing,false,false,Exponential smoothing state space model chosen by information criterion.
+arima,ARIMA,arima,false,false,Automatically selected ARIMA on the log price.
+arima_stu,ARIMA + stocks-to-use,arima,true,false,ARIMA with the USDA stocks-to-use ratio as published at the forecast date.
+wasde,USDA WASDE projection,expert,false,true,USDA season-average farm price projection as published in the report (marketing-year average only).

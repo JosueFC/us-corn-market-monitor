@@ -1,0 +1,22 @@
+attribute_key,item,expected_unit,ignored
+area planted,area_planted,Million Acres,false
+area harvested,area_harvested,Million Acres,false
+yield per harvested acre,yield_bu_per_acre,Bushels,false
+beginning stocks,beginning_stocks,Million Bushels,false
+production,production,Million Bushels,false
+imports,imports,Million Bushels,false
+"supply, total",supply_total,Million Bushels,false
+feed and residual,feed_residual,Million Bushels,false
+"food, seed & industrial",food_seed_industrial,Million Bushels,false
+ethanol & by-products,ethanol_use,Million Bushels,false
+ethanol for fuel,ethanol_use,Million Bushels,false
+"domestic, total",domestic_total,Million Bushels,false
+exports,exports,Million Bushels,false
+"use, total",use_total,Million Bushels,false
+ending stocks,ending_stocks,Million Bushels,false
+avg. farm price,season_avg_price,$/bu,false
+avg. farm price - high,season_avg_price_high,$/bu,false
+avg. farm price - low,season_avg_price_low,$/bu,false
+ccc inventory,ccc_inventory,Million Bushels,true
+free stocks,free_stocks,Million Bushels,true
+outstanding loans,outstanding_loans,Million Bushels,true

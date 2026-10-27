@@ -1,0 +1,177 @@
+version: 2
+
+models:
+  - name: dim_date
+    description: Calendar with the corn marketing year (September to August). One row per day, 1975-2035.
+    columns:
+      - name: date_key
+        description: The date. Marked as the date table in Power BI.
+        data_tests: [unique, not_null]
+      - name: marketing_year_start
+        description: Calendar year in which the marketing year starts (2025 for September 2025 to August 2026).
+        data_tests: [not_null]
+      - name: marketing_year_label
+        description: Marketing year as 2025/26.
+        data_tests: [not_null]
+      - name: marketing_year_month_number
+        description: Month within the marketing year, 1 (September) to 12 (August).
+        data_tests:
+          - between_values:
+              arguments: {min_value: 1, max_value: 12}
+
+  - name: dim_marketing_year
+    description: Corn marketing years. One row per marketing year.
+    columns:
+      - name: marketing_year_key
+        description: Calendar year in which the marketing year starts.
+        data_tests: [unique, not_null]
+
+  - name: dim_state
+    description: States with corn statistics plus the national total (state_key 99, is_national true).
+    columns:
+      - name: state_key
+        description: FIPS state code.
+        data_tests: [unique, not_null]
+      - name: state_name
+        data_tests: [not_null]
+
+  - name: dim_report_vintage
+    description: WASDE reports. release_date is when the report became public, which is the date a forecast may use it from.
+    columns:
+      - name: report_vintage_key
+        description: WASDE report number.
+        data_tests: [unique, not_null]
+      - name: release_date
+        data_tests: [not_null]
+      - name: report_month
+        data_tests: [not_null]
+
+  - name: fct_price_monthly
+    description: Monthly corn price received, national and by state. Grain is state and month. Prices are not additive across states.
+    data_tests:
+      - unique_combination:
+          arguments: {columns: [state_key, price_month_key]}
+    columns:
+      - name: state_key
+        data_tests:
+          - not_null
+          - relationships:
+              arguments: {to: ref('dim_state'), field: state_key}
+      - name: price_month_key
+        description: First day of the price month.
+        data_tests:
+          - not_null
+          - relationships:
+              arguments: {to: ref('dim_date'), field: date_key}
+      - name: price_usd_per_bu
+        description: Dollars per bushel. Null when NASS withholds the value.
+        data_tests:
+          - between_values:
+              arguments: {min_value: 0.5, max_value: 15}
+      - name: available_date_lag
+        description: Date the price counts as public under the publication-lag assumption.
+        data_tests: [not_null]
+      - name: available_date_revision
+        description: Date NASS loaded the value now in Quick Stats (the revised figure).
+
+  - name: fct_production_annual_state
+    description: Final annual corn estimates by state; the national total is excluded so sums are safe. Grain is state and crop year.
+    data_tests:
+      - unique_combination:
+          arguments: {columns: [state_key, marketing_year_key]}
+    columns:
+      - name: state_key
+        data_tests:
+          - not_null
+          - relationships:
+              arguments: {to: ref('dim_state'), field: state_key}
+      - name: marketing_year_key
+        description: Crop year, which is also the calendar year in which the marketing year starts.
+        data_tests:
+          - not_null
+          - relationships:
+              arguments: {to: ref('dim_marketing_year'), field: marketing_year_key}
+      - name: yield_bu_per_acre
+        data_tests:
+          - between_values:
+              arguments: {min_value: 20, max_value: 300}
+
+  - name: fct_production_national_reconciliation
+    description: National production against the sum of the state figures, for the data notes page. Grain is crop year.
+    data_tests:
+      - unique_combination:
+          arguments: {columns: [marketing_year_key]}
+
+  - name: fct_wasde_balance
+    description: >
+      US corn balance sheet as published in each WASDE report. Grain is report and marketing year. Quantities in million
+      bushels, area in million acres, yield in bushels per acre, prices in dollars per bushel.
+    data_tests:
+      - unique_combination:
+          arguments: {columns: [report_vintage_key, marketing_year_key]}
+    columns:
+      - name: report_vintage_key
+        data_tests:
+          - not_null
+          - relationships:
+              arguments: {to: ref('dim_report_vintage'), field: report_vintage_key}
+      - name: marketing_year_key
+        data_tests:
+          - not_null
+          - relationships:
+              arguments: {to: ref('dim_marketing_year'), field: marketing_year_key}
+      - name: stocks_to_use
+        description: Ending stocks divided by total use, as published in that report.
+        data_tests:
+          - between_values:
+              arguments: {min_value: 0, max_value: 1}
+      - name: season_avg_price
+        description: USDA's season-average farm price for the marketing year as published in that report.
+        data_tests:
+          - between_values:
+              arguments: {min_value: 0.5, max_value: 15}
+
+  - name: fct_marketing_year_summary
+    description: One row per marketing year with the NASS marketing-year price and the latest WASDE balance sheet for that year.
+    data_tests:
+      - unique_combination:
+          arguments: {columns: [marketing_year_key]}
+    columns:
+      - name: marketing_year_key
+        data_tests:
+          - not_null
+          - relationships:
+              arguments: {to: ref('dim_marketing_year'), field: marketing_year_key}
+
+  - name: fct_crop_condition_weekly
+    description: Weekly corn condition ratings. Grain is state and week ending date.
+    data_tests:
+      - unique_combination:
+          arguments: {columns: [state_key, week_ending_key]}
+    columns:
+      - name: state_key
+        data_tests:
+          - not_null
+          - relationships:
+              arguments: {to: ref('dim_state'), field: state_key}
+      - name: week_ending_key
+        data_tests:
+          - not_null
+          - relationships:
+              arguments: {to: ref('dim_date'), field: date_key}
+      - name: condition_index
+        data_tests:
+          - between_values:
+              arguments: {min_value: 1, max_value: 5}
+
+  - name: fct_grain_stocks_quarterly
+    description: US corn stocks on 1 March, 1 June, 1 September and 1 December. Grain is the stocks date.
+    data_tests:
+      - unique_combination:
+          arguments: {columns: [stocks_date_key]}
+    columns:
+      - name: stocks_date_key
+        data_tests:
+          - not_null
+          - relationships:
+              arguments: {to: ref('dim_date'), field: date_key}

@@ -16,9 +16,9 @@ def test_latest_attempt_decides_whether_a_partition_is_loaded():
     common.log_status(con, "nass", "p", "ok", fingerprint="a")
     assert common.is_loaded(con, "nass", "p")
     assert common.is_loaded(con, "nass", "p", fingerprint="a")
-    assert not common.is_loaded(con, "nass", "p", fingerprint="b")   # content changed
+    assert not common.is_loaded(con, "nass", "p", fingerprint="b")  # content changed
     common.log_status(con, "nass", "p", "failed", error="boom")
-    assert not common.is_loaded(con, "nass", "p")                     # a later failure wins
+    assert not common.is_loaded(con, "nass", "p")  # a later failure wins
     assert not common.is_loaded(con, "nass", "never-tried")
 
 
@@ -35,7 +35,7 @@ def test_replace_partition_rolls_back_on_error(monkeypatch, failure):
         common.replace_partition(con, "raw.t", {"part": "a"}, new, "test", "a")
     assert sorted(r[0] for r in con.execute("SELECT x FROM raw.t").fetchall()) == [1, 2]
     statuses = [r[0] for r in con.execute("SELECT status FROM raw.ingest_log ORDER BY log_id").fetchall()]
-    assert statuses == ["ok"]                                          # the failed attempt left no trace
+    assert statuses == ["ok"]  # the failed attempt left no trace
 
 
 def test_get_with_retries_backs_off_then_succeeds():

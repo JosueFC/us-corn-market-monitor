@@ -1,0 +1,128 @@
+version: 2
+
+models:
+  - name: stg_nass__price_monthly
+    description: Monthly corn price received by farmers ($/bu), national (state_alpha US) and by state. Grain, state and month.
+    data_tests:
+      - unique_combination:
+          arguments: {columns: [state_key, price_month]}
+    columns:
+      - name: state_key
+        data_tests: [not_null]
+      - name: price_month
+        data_tests: [not_null]
+      - name: unit_desc
+        data_tests:
+          - not_null
+          - accepted_values:
+              arguments: {values: ['$ / BU']}
+      - name: price_usd_per_bu
+        description: Price in dollars per bushel; null when NASS withholds the value (see suppression_code).
+        data_tests:
+          - between_values:
+              arguments: {min_value: 0.5, max_value: 15}
+
+  - name: stg_nass__price_marketing_year
+    description: National marketing-year average price received ($/bu). Grain, marketing year.
+    data_tests:
+      - unique_combination:
+          arguments: {columns: [my_start_year]}
+    columns:
+      - name: my_start_year
+        data_tests: [not_null]
+      - name: unit_desc
+        data_tests:
+          - accepted_values:
+              arguments: {values: ['$ / BU']}
+      - name: price_usd_per_bu
+        data_tests:
+          - between_values:
+              arguments: {min_value: 0.5, max_value: 15}
+
+  - name: stg_nass__annual
+    description: Annual acreage, yield and production, national and by state, all reference periods. Grain, state, crop year, reference period and measure.
+    data_tests:
+      - unique_combination:
+          arguments: {columns: [state_key, crop_year, reference_period_desc, measure]}
+    columns:
+      - name: state_key
+        data_tests: [not_null]
+      - name: crop_year
+        data_tests: [not_null]
+      - name: measure
+        data_tests:
+          - not_null
+          - accepted_values:
+              arguments: {values: [acres_planted, acres_harvested, yield_bu_per_acre, production_bu]}
+      - name: reference_period_desc
+        description: YEAR is the estimate; the others are NASS in-season forecasts and acreage reports.
+        data_tests:
+          - not_null
+          - accepted_values:
+              config: {severity: warn}
+              arguments:
+                values: [YEAR, YEAR - MAR ACREAGE, YEAR - JUN ACREAGE, YEAR - AUG ACREAGE, YEAR - OCT ACREAGE,
+                         YEAR - AUG FORECAST, YEAR - SEP FORECAST, YEAR - OCT FORECAST, YEAR - NOV FORECAST]
+
+  - name: stg_nass__stocks
+    description: Quarterly US corn stocks in bushels. Grain, stocks date and location.
+    data_tests:
+      - unique_combination:
+          arguments: {columns: [stocks_date, location]}
+    columns:
+      - name: stocks_date
+        data_tests: [not_null]
+      - name: location
+        data_tests:
+          - not_null
+          - accepted_values:
+              arguments: {values: [total, on_farm, off_farm]}
+      - name: unit_desc
+        data_tests:
+          - accepted_values:
+              arguments: {values: [BU]}
+
+  - name: stg_nass__condition
+    description: Weekly corn condition, percent of acreage per rating class. Grain, state, week ending and class.
+    data_tests:
+      - unique_combination:
+          arguments: {columns: [state_key, week_ending, rating_class]}
+    columns:
+      - name: state_key
+        data_tests: [not_null]
+      - name: week_ending
+        data_tests: [not_null]
+      - name: rating_class
+        data_tests:
+          - not_null
+          - accepted_values:
+              arguments: {values: [very poor, poor, fair, good, excellent]}
+      - name: pct_of_acres
+        data_tests:
+          - between_values:
+              arguments: {min_value: 0, max_value: 100}
+
+  - name: stg_wasde__corn_us
+    description: US corn balance sheet lines as published in each WASDE report. Grain, report, attribute and marketing year.
+    data_tests:
+      - unique_combination:
+          arguments: {columns: [wasde_number, attribute_key, my_start_year]}
+    columns:
+      - name: wasde_number
+        data_tests: [not_null]
+      - name: release_date
+        description: Date the report became public. Both date formats in the source files are parsed.
+        data_tests: [not_null]
+      - name: report_month
+        data_tests: [not_null]
+      - name: attribute_key
+        data_tests: [not_null]
+      - name: my_start_year
+        data_tests: [not_null]
+      - name: unit
+        data_tests: [not_null]
+      - name: status
+        description: Est. or Proj. as flagged by USDA; null where the flag is blank.
+        data_tests:
+          - accepted_values:
+              arguments: {values: [Est., Proj.]}

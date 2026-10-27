@@ -18,5 +18,12 @@ jobs:
       - run: pip install -r requirements.txt
       - name: Lint
         run: ruff check .
-      - name: Ingestion tests (synthetic fixtures, including deliberately broken ones; no network)
+      - name: Tests (ingestion fixtures and dbt models on synthetic data, including deliberately broken data)
         run: python -m pytest
+      - name: dbt build on a fresh synthetic database (models, seeds and data tests)
+        run: |
+          python -m scripts.make_sample_data
+          dbt build --project-dir dbt --profiles-dir dbt
+        env:
+          CORN_DB: data/sample.duckdb
+          DBT_SEND_ANONYMOUS_USAGE_STATS: "False"

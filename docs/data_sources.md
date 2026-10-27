@@ -58,13 +58,27 @@ Loader: `python -m ingest.wasde`.
 <https://apps.fas.usda.gov/psdonline/> holds the revised balance-sheet history. Revised figures are
 not what a forecaster saw at the time, so PSD data is never a forecasting input.
 
-## The forecasting target
+## The forecasting target and what a forecast may know
 
-The target is the **monthly US average price received for corn grain as currently published in
-Quick Stats**, that is, after NASS's revision of the preliminary figure.
+The target is the **monthly US average price received for corn grain, as currently published in
+Quick Stats** (the series `CORN, GRAIN - PRICE RECEIVED, MEASURED IN $ / BU`, frequency `MONTHLY`).
 
-NASS releases a preliminary price for a month and revises it in a later release. Quick Stats keeps
-only the revised series, and the preliminary history before the first data pull is not available
-from the API. To keep backtests point-in-time without that history, a forecast made at a given
-origin uses only months whose revised price had been published by then; the preliminary figure for
-the most recent month is not used as an input.
+Quick Stats keeps only the latest value of each month, so the first, preliminary release of a price
+is not recoverable from the API. The `load_time` field shows how NASS updates the series: all months
+of a marketing year are reloaded in one batch at the end of September after the year closes (for
+example, January to August 2025 carry the load date 2025-09-30, September to December 2025 carry
+2026-09-29). Two rules for when a month's price counts as known are therefore built into
+`fct_price_monthly`, and the backtests report both:
+
+| Rule | A price is known from | Property |
+|---|---|---|
+| `available_date_lag` (primary) | the last day of the month `price_availability_lag_months` after the price month (default 1, a dbt variable) | Realistic timing, but it uses the revised value as if it had been known at the time, so it leaks a small amount of revision information into the backtest |
+| `available_date_revision` (strict) | the date the current value was loaded into Quick Stats | No leakage, but the newest usable price is often 11 or more months old, which makes short horizons unrealistic |
+
+The one-month lag is an assumption based on the latest month present in Quick Stats at the time of
+the pull; it should be checked against the NASS release calendar. Both the assumption and the size of
+the revisions (measurable from the landing-zone snapshots as they accumulate) belong in the README
+limitations.
+
+WASDE features are point in time by construction: each report's figures are used only from its
+`release_date`, as first published.
