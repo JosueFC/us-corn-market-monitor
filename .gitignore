@@ -1,0 +1,37 @@
+# Python
+.venv/
+__pycache__/
+*.pyc
+.pytest_cache/
+.ruff_cache/
+
+# Data: the database and the raw landing zone are rebuilt by the ingestion scripts
+data/
+*.duckdb
+*.duckdb.wal
+
+# Secrets
+.env
+
+# dbt
+dbt/target/
+dbt/logs/
+dbt/.user.yml
+
+# R
+.Rhistory
+.RData
+.Rproj.user/
+renv/library/
+renv/local/
+renv/staging/
+
+# Power BI Project (.pbip): keep the model and report definitions, not the local cache or settings
+**/.pbi/localSettings.json
+**/.pbi/cache.abf
+*.pbix
+
+# OS / editors
+.DS_Store
+Thumbs.db
+.vscode/

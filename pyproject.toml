@@ -1,0 +1,19 @@
+[project]
+name = "us-corn-market-monitor"
+version = "0.1.0"
+description = "Point-in-time pipeline and forecasts for the US corn market (NASS Quick Stats + WASDE report vintages)."
+requires-python = ">=3.12"
+license = { text = "MIT" }
+
+[tool.ruff]
+line-length = 120
+target-version = "py312"
+extend-exclude = ["dbt/target", "dbt/logs", "data"]
+
+[tool.ruff.lint]
+select = ["E", "F", "W", "I", "B", "UP"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+pythonpath = ["."]
+addopts = "-q"

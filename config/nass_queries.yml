@@ -1,0 +1,75 @@
+# NASS Quick Stats queries. Each query is sent once per year (one partition = query x year).
+#
+# Filters are deliberately broad: they select the survey program, commodity, geography and statistic
+# category, and leave the finer choices (utilization practice, unit, reference period) to the dbt
+# staging models, where they are explicit and tested. Keeping the filters broad also keeps NASS's
+# in-season forecasts (reference periods such as "YEAR - AUG FORECAST"), which are point-in-time
+# information in their own right.
+#
+# Every value below is checked against the live API before data is loaded:
+#     python -m ingest.nass --check-config
+# which confirms each value exists (get_param_values) and that each query returns rows (get_counts).
+
+queries:
+  price_received_national:
+    description: Corn price received by farmers, United States (monthly and marketing-year).
+    start_year: 1975
+    params:
+      source_desc: SURVEY
+      commodity_desc: CORN
+      statisticcat_desc: PRICE RECEIVED
+      agg_level_desc: NATIONAL
+
+  price_received_state:
+    description: Corn price received by farmers, by state (monthly and marketing-year).
+    start_year: 1975
+    params:
+      source_desc: SURVEY
+      commodity_desc: CORN
+      statisticcat_desc: PRICE RECEIVED
+      agg_level_desc: STATE
+
+  annual_national:
+    description: Annual corn estimates and in-season forecasts, United States (acreage, yield, production).
+    start_year: 1975
+    params:
+      source_desc: SURVEY
+      commodity_desc: CORN
+      freq_desc: ANNUAL
+      agg_level_desc: NATIONAL
+
+  annual_state:
+    description: Annual corn estimates and in-season forecasts, by state (acreage, yield, production).
+    start_year: 1975
+    params:
+      source_desc: SURVEY
+      commodity_desc: CORN
+      freq_desc: ANNUAL
+      agg_level_desc: STATE
+
+  stocks_national:
+    description: Quarterly corn grain stocks, United States (on-farm, off-farm and total).
+    start_year: 1975
+    params:
+      source_desc: SURVEY
+      commodity_desc: CORN
+      statisticcat_desc: STOCKS
+      agg_level_desc: NATIONAL
+
+  condition_national:
+    description: Weekly corn condition ratings, United States (percent of acreage in each class).
+    start_year: 1986
+    params:
+      source_desc: SURVEY
+      commodity_desc: CORN
+      statisticcat_desc: CONDITION
+      agg_level_desc: NATIONAL
+
+  condition_state:
+    description: Weekly corn condition ratings, by state (percent of acreage in each class).
+    start_year: 1986
+    params:
+      source_desc: SURVEY
+      commodity_desc: CORN
+      statisticcat_desc: CONDITION
+      agg_level_desc: STATE
