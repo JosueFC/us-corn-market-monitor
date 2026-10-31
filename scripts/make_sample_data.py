@@ -40,6 +40,7 @@ STATES = [  # fips, alpha, name, share of national production
     ("55", "WI", "WISCONSIN", 0.04),
 ]
 NATIONAL = ("99", "US", "US TOTAL")
+OTHER_STATES = ("98", "OT", "OTHER STATES")
 MONTHS = ["JAN", "FEB", "MAR", "APR", "MAY", "JUN", "JUL", "AUG", "SEP", "OCT", "NOV", "DEC"]
 # Marketing-year average price level by marketing year start (shapes only: ethanol boom, 2012 drought, 2021-22 spike).
 PRICE_LEVEL = {
@@ -293,6 +294,10 @@ def build_nass(con, rng: random.Random) -> None:
             harvested = int(prod / yld)
             planted = int(harvested * 1.08)
             state_rows.append(((fips, alpha, name), prod, yld, harvested, planted))
+        # NASS publishes the small remaining states as one "OTHER STATES" row whose yield is 0 (not defined)
+        other_prod = int(total_prod * 0.02)
+        other_harv = int(other_prod / 170)
+        state_rows.append((OTHER_STATES, other_prod, 0.0, other_harv, int(other_harv * 1.08)))
         national_prod = sum(r[1] for r in state_rows)
         national_harv = sum(r[3] for r in state_rows)
         national_plant = sum(r[4] for r in state_rows)

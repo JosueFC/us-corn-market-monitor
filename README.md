@@ -76,6 +76,7 @@ Then build and test the models (from the repository root):
 dbt seed  --project-dir dbt --profiles-dir dbt
 dbt build --project-dir dbt --profiles-dir dbt
 python -m scripts.profile_raw --out data\profile.txt   # what is in the raw tables, for checking the models
+python -m scripts.profile_marts --out data\marts_profile.txt   # what the built marts contain
 ```
 
 `python -m scripts.make_sample_data --db data\sample.duckdb` creates a synthetic database for trying the
@@ -107,7 +108,7 @@ config/nass_queries.yml   NASS queries (filters and start year)
 dbt/                      staging, intermediate and mart models, seeds and data tests
 docs/                     data sources, point-in-time rules, data model and tests
 ingest/                   loaders: common.py (shared), nass.py, wasde.py
-scripts/                  synthetic sample data generator, raw data profile
+scripts/                  synthetic sample data generator, raw and mart profiles
 tests/                    pytest suite (loaders and dbt models) and fixtures
 ```
 

@@ -186,6 +186,13 @@ BREAKS = [
         ["assert_condition_classes_sum_to_100"],
     ),
     (
+        "zero_yield_for_a_real_state",
+        "UPDATE raw.nass_quickstats SET value = '0' WHERE query_name = 'annual_state' AND state_alpha = 'IL' "
+        "AND \"year\" = '2022' AND reference_period_desc = 'YEAR' "
+        "AND short_desc = 'CORN, GRAIN - YIELD, MEASURED IN BU / ACRE'",
+        ["assert_nass_annual_units_and_ranges"],
+    ),
+    (
         "yield_in_wrong_units",
         "UPDATE raw.nass_quickstats SET value = '21,000' WHERE query_name = 'annual_state' AND state_alpha = 'IL' "
         "AND \"year\" = '2022' AND reference_period_desc = 'YEAR' "
@@ -243,3 +250,21 @@ def test_reissued_wasde_report_replaces_the_original(clean_db, workdir):
     ).fetchone()[0]
     assert exports == 99.9
     assert reissued is True
+
+
+def test_mart_profile_reports_on_the_built_marts(clean_run, workdir):
+    from scripts import profile_marts
+
+    con = duckdb.connect(str(workdir / "clean_built.duckdb"))
+    report = profile_marts.build_report(con)
+    con.close()
+    assert "Rows per mart" in report and "fct_price_monthly" in report
+    assert "months between the price month and the NASS load" in report
+    assert "Latest WASDE report" in report
+
+
+def test_mart_profile_says_what_to_do_when_the_marts_are_missing():
+    from ingest import common
+    from scripts import profile_marts
+
+    assert "dbt build" in profile_marts.build_report(common.connect())
